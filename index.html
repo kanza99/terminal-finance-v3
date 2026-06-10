@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Terminal Finance v3.2</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a0a;color:#00ff41;font-family:'Courier New',monospace;font-size:13px;min-height:100vh;overflow-x:hidden}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:#111}::-webkit-scrollbar-thumb{background:#00a028}
+.scanline{pointer-events:none;position:fixed;top:0;left:0;width:100%;height:100%;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,255,65,.01) 2px,rgba(0,255,65,.01) 4px);z-index:9999}
+#boot{position:fixed;inset:0;background:#0a0a0a;z-index:900;display:flex;align-items:center;justify-content:center;padding:2rem}
+#boot-box{width:620px;max-width:96vw}
+#boot-text{color:#00ff41;font-family:'Courier New',monospace;font-size:12px;line-height:1.8;min-height:240px;white-space:pre}
+.prog-wrap{height:3px;background:#111;border:1px solid #00a028;margin-top:10px;overflow:hidden}
+#boot-bar{height:100%;background:#00ff41;width:0%;transition:width .4s}
+#err-screen{display:none;position:fixed;inset:0;background:#0a0a0a;z-index:910;align-items:center;justify-content:center;padding:2rem}
+.err-box{border:1px solid #ff4141;padding:2rem;max-width:480px;width:100%;text-align:center}
+.err-box h2{color:#ff4141;letter-spacing:3px;margin-bottom:.8rem;font-size:1rem}
+.err-detail{color:#007a1e;font-size:11px;line-height:1.9;margin-bottom:.5rem}
+.err-code{color:#ff4141;font-size:10px;background:#0d0000;border:1px solid #2a0000;padding:.5rem;margin:.8rem 0;word-break:break-all}
+#app{display:none;padding:1rem;max-width:1200px;margin:0 auto}
+.header{border-bottom:1px solid #00a028;padding-bottom:.6rem;margin-bottom:1rem}
+h1{font-size:1rem;letter-spacing:3px;color:#00ff41}
+.sub{color:#007a1e;font-size:11px;margin-top:3px}
+.cursor{display:inline-block;width:7px;height:13px;background:#00ff41;animation:blink 1s step-end infinite;vertical-align:middle}
+@keyframes blink{50%{opacity:0}}
+#sdot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#ffd700;margin-right:5px;transition:background .3s}
+#sdot.ok{background:#00ff41;animation:none}
+#sdot.busy{background:#ffd700;animation:p .7s ease-in-out infinite}
+#sdot.err{background:#ff4141;animation:none}
+@keyframes p{0%,100%{opacity:1}50%{opacity:.15}}
+.tabs{display:flex;border-bottom:1px solid #00a028;margin-bottom:1rem;flex-wrap:wrap}
+.tab{padding:.4rem 1.1rem;cursor:pointer;color:#007a1e;border:1px solid transparent;border-bottom:none;font-family:'Courier New',monospace;font-size:12px;background:transparent;transition:all .15s}
+.tab.active{color:#00ff41;border-color:#00a028;background:#0d1a0d}
+.tab:hover:not(.active){color:#00ff41}
+.panel{display:none}.panel.active{display:block}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:1rem}
+.card{background:#0d1a0d;border:1px solid #00a028;padding:.75rem 1rem}
+.card .lbl{color:#007a1e;font-size:10px;letter-spacing:1px;margin-bottom:5px}
+.card .val{font-size:1rem;font-weight:bold;word-break:break-all}
+.ci .val{color:#00ff41}.ce .val{color:#ff4141}.cb .val{color:#41d4ff}.ct .val{color:#ffd700}
+.fg{display:grid;gap:8px;margin-bottom:8px;align-items:end}
+.fg5{grid-template-columns:1fr 1fr 1fr 1fr auto}
+.fg3{grid-template-columns:1fr 1fr auto}
+label{color:#007a1e;font-size:11px;display:block;margin-bottom:3px}
+input,select{background:#050505;border:1px solid #007a1e;color:#00ff41;font-family:'Courier New',monospace;font-size:12px;padding:.4rem .6rem;width:100%;outline:none;transition:border .15s}
+input:focus,select:focus{border-color:#00ff41;box-shadow:0 0 4px rgba(0,255,65,.12)}
+select option{background:#0a0a0a;color:#00ff41}
+.btn{background:#050505;border:1px solid #00ff41;color:#00ff41;font-family:'Courier New',monospace;font-size:12px;padding:.38rem .9rem;cursor:pointer;transition:all .15s;white-space:nowrap}
+.btn:hover:not(:disabled){background:#00ff41;color:#000}
+.btn:disabled{opacity:.3;cursor:not-allowed}
+.red{border-color:#ff4141!important;color:#ff4141!important}.red:hover:not(:disabled){background:#ff4141!important;color:#000!important}
+.blu{border-color:#41d4ff!important;color:#41d4ff!important}.blu:hover:not(:disabled){background:#41d4ff!important;color:#000!important}
+.yel{border-color:#ffd700!important;color:#ffd700!important}.yel:hover:not(:disabled){background:#ffd700!important;color:#000!important}
+.twrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:11.5px;min-width:580px}
+thead tr{border-bottom:1px solid #00a028}
+th{color:#007a1e;text-align:left;padding:.38rem .55rem;font-weight:normal;font-size:10px;letter-spacing:1px}
+td{padding:.3rem .55rem;border-bottom:1px solid #111;vertical-align:middle}
+tr:hover td{background:#0d1a0d}
+.badge{padding:1px 7px;font-size:10px}
+.bi{border:1px solid #00ff41;color:#00ff41}.be{border:1px solid #ff4141;color:#ff4141}
+.sec{color:#007a1e;font-size:10px;letter-spacing:2px;margin-bottom:.5rem;padding-bottom:.28rem;border-bottom:1px solid #111}
+.cbox{background:#050505;border:1px solid #00a028;padding:1rem;margin-bottom:1rem}
+#log{height:50px;overflow-y:auto;background:#050505;border:1px solid #111;padding:.4rem .6rem;font-size:11px;color:#007a1e;margin-bottom:1rem}
+.frow{display:flex;gap:8px;align-items:flex-end;margin-bottom:1rem;flex-wrap:wrap}
+.fitem{display:flex;flex-direction:column;gap:3px}
+.empty{text-align:center;padding:2.5rem;color:#007a1e;font-size:12px;letter-spacing:1px}
+.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:700;align-items:center;justify-content:center}
+.modal.open{display:flex}
+.mbox{background:#0a0a0a;border:1px solid #00ff41;padding:1.5rem;width:440px;max-width:96vw;max-height:92vh;overflow-y:auto}
+.mtitle{color:#00ff41;font-size:13px;letter-spacing:2px;margin-bottom:1rem;padding-bottom:.5rem;border-bottom:1px solid #00a028}
+.mrow{margin-bottom:.7rem}
+.mact{display:flex;gap:8px;margin-top:1rem;justify-content:flex-end}
+.keys{font-size:11px;color:#007a1e;line-height:2.2;margin-top:1rem;padding:.6rem;background:#050505;border:1px solid #111}
+.keys b{color:#00ff41}
+@media(max-width:720px){.grid4{grid-template-columns:1fr 1fr}.fg5{grid-template-columns:1fr 1fr}.fg5>*:last-child{grid-column:span 2}.fg3{grid-template-columns:1fr 1fr}.fg3>*:last-child{grid-column:span 2}}
+@media(max-width:400px){.grid4{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="scanline"></div>
+<div id="boot">
+  <div id="boot-box">
+    <pre id="boot-text"></pre>
+    <div class="prog-wrap"><div id="boot-bar"></div></div>
+  </div>
+</div>
+<div id="err-screen">
+  <div class="err-box">
+    <h2>[ CONNECTION FAILED ]</h2>
+    <div class="err-detail">Tidak dapat terhubung ke database JSONBin.<br>Periksa koneksi internet lalu coba lagi.</div>
+    <div class="err-code" id="err-msg">—</div>
+    <div style="margin:1rem 0;padding:.8rem;background:#0d0d00;border:1px solid #ffd700;font-size:11px;color:#ffd700;line-height:1.8">
+      ⚠ Aplikasi ini harus dibuka sebagai file HTML di browser,<br>
+      bukan dari dalam Claude.ai karena ada batasan CORS.<br><br>
+      Klik tombol di bawah untuk download file HTML-nya,<br>
+      lalu buka file tersebut di browser kamu.
+    </div>
+    <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+      <button class="btn yel" onclick="downloadHTML()">[ ↓ DOWNLOAD FILE HTML ]</button>
+      <button class="btn" onclick="retryBoot()">[ ↻ COBA LAGI ]</button>
+      <button class="btn red" onclick="goOffline()">[ OFFLINE MODE ]</button>
+    </div>
+  </div>
+</div>
+<div id="app">
+  <div class="header">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:6px">
+      <div>
+        <h1>[ TERMINAL FINANCE v3.2 ]</h1>
+        <div class="sub">Sistem Keuangan Bersama — <span id="clock"></span></div>
+      </div>
+      <div style="text-align:right;font-size:11px">
+        <div><span id="sdot" class="busy"></span><span id="slbl">INIT</span></div>
+        <div style="color:#555;margin-top:2px">user@finance~$<span class="cursor"></span></div>
+      </div>
+    </div>
+  </div>
+  <div id="log"></div>
+  <div class="tabs">
+    <button class="tab active" onclick="goTab('dashboard')">[ DASHBOARD ]</button>
+    <button class="tab" onclick="goTab('transaksi')">[ TRANSAKSI ]</button>
+    <button class="tab" onclick="goTab('riwayat')">[ RIWAYAT ]</button>
+    <button class="tab" onclick="goTab('laporan')">[ LAPORAN ]</button>
+  </div>
+  <div id="panel-dashboard" class="panel active">
+    <div style="display:flex;justify-content:flex-end;margin-bottom:.5rem">
+      <button class="btn" style="font-size:11px;padding:3px 10px" onclick="doSync()">[ ↻ SYNC ]</button>
+    </div>
+    <div class="grid4">
+      <div class="card ci"><div class="lbl">▲ PEMASUKAN</div><div class="val" id="s-i">Rp 0</div></div>
+      <div class="card ce"><div class="lbl">▼ PENGELUARAN</div><div class="val" id="s-e">Rp 0</div></div>
+      <div class="card cb"><div class="lbl">◈ SALDO BERSIH</div><div class="val" id="s-b">Rp 0</div></div>
+      <div class="card ct"><div class="lbl">≡ TRANSAKSI</div><div class="val" id="s-t">0</div></div>
+    </div>
+    <div class="cbox">
+      <div class="sec">▸ GRAFIK PERKEMBANGAN BULANAN</div>
+      <div style="position:relative;height:210px"><canvas id="cLine"></canvas></div>
+    </div>
+    <div class="cbox">
+      <div class="sec">▸ DISTRIBUSI KATEGORI PENGELUARAN</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;align-items:center">
+        <div style="position:relative;height:180px"><canvas id="cDnut"></canvas></div>
+        <div id="dleg" style="font-size:11px;display:flex;flex-direction:column;gap:5px;color:#007a1e"></div>
+      </div>
+    </div>
+  </div>
+  <div id="panel-transaksi" class="panel">
+    <div class="sec">▸ TAMBAH TRANSAKSI BARU</div>
+    <div class="fg fg5">
+      <div><label>JENIS</label><select id="f-jenis"><option value="income">▲ Pemasukan</option><option value="expense">▼ Pengeluaran</option></select></div>
+      <div><label>TANGGAL</label><input type="date" id="f-tgl"></div>
+      <div><label>JUMLAH (Rp)</label><input type="number" id="f-jml" placeholder="0" min="1"></div>
+      <div><label>KATEGORI</label><select id="f-kat"><option>Gaji</option><option>Freelance</option><option>Investasi</option><option>Bonus</option><option>Makanan</option><option>Transport</option><option>Belanja</option><option>Kesehatan</option><option>Hiburan</option><option>Tagihan</option><option>Pendidikan</option><option>Lainnya</option></select></div>
+      <div><label>&nbsp;</label><button class="btn" id="btn-add" onclick="addTx()">[ + ADD ]</button></div>
+    </div>
+    <div class="fg fg3">
+      <div><label>DESKRIPSI</label><input type="text" id="f-desc" placeholder="Catatan..."></div>
+      <div><label>REFERENSI</label><input type="text" id="f-ref" placeholder="No. ref (opsional)"></div>
+      <div><label>&nbsp;</label><button class="btn red" onclick="clearF()">[ RESET ]</button></div>
+    </div>
+    <div class="keys">
+      <b>[Ctrl+Enter]</b> Tambah &nbsp;|&nbsp; <b>[Ctrl+D]</b> Dashboard &nbsp;|&nbsp; <b>[Ctrl+H]</b> Riwayat &nbsp;|&nbsp; <b>[Ctrl+Shift+S]</b> Sync
+    </div>
+  </div>
+  <div id="panel-riwayat" class="panel">
+    <div class="frow">
+      <div class="fitem"><label>CARI</label><input type="text" id="fq" placeholder="cari..." style="width:145px" oninput="renderTbl()"></div>
+      <div class="fitem"><label>JENIS</label><select id="fj" onchange="renderTbl()" style="width:115px"><option value="">Semua</option><option value="income">Pemasukan</option><option value="expense">Pengeluaran</option></select></div>
+      <div class="fitem"><label>BULAN</label><select id="fb" onchange="renderTbl()" style="width:110px"><option value="">Semua</option></select></div>
+      <div class="fitem"><label>KATEGORI</label><select id="fk" onchange="renderTbl()" style="width:115px"><option value="">Semua</option></select></div>
+      <div style="display:flex;align-items:flex-end;gap:6px">
+        <button class="btn" onclick="resetFil()">[ RESET ]</button>
+        <button class="btn" onclick="doSync()">[ ↻ ]</button>
+      </div>
+    </div>
+    <div class="twrap" id="twrap"></div>
+  </div>
+  <div id="panel-laporan" class="panel">
+    <div class="sec">▸ EXPORT LAPORAN</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:1.2rem">
+      <button class="btn blu" onclick="expXlsx()">[ ↓ EXCEL .xlsx ]</button>
+      <button class="btn red" onclick="expPDF()">[ ↓ PDF ]</button>
+      <button class="btn yel" onclick="expWord()">[ ↓ WORD .doc ]</button>
+    </div>
+    <div class="sec">▸ RINGKASAN PER BULAN</div>
+    <div class="twrap" id="stbl" style="margin-bottom:1rem"></div>
+    <div class="cbox">
+      <div class="sec">▸ PEMASUKAN vs PENGELUARAN</div>
+      <div style="position:relative;height:230px"><canvas id="cBar"></canvas></div>
+    </div>
+  </div>
+</div>
+<div class="modal" id="modal-edit">
+  <div class="mbox">
+    <div class="mtitle">[ EDIT TRANSAKSI ]</div>
+    <input type="hidden" id="e-id">
+    <div class="mrow"><label>JENIS</label><select id="e-jenis"><option value="income">▲ Pemasukan</option><option value="expense">▼ Pengeluaran</option></select></div>
+    <div class="mrow"><label>TANGGAL</label><input type="date" id="e-tgl"></div>
+    <div class="mrow"><label>JUMLAH (Rp)</label><input type="number" id="e-jml" min="1"></div>
+    <div class="mrow"><label>KATEGORI</label><select id="e-kat"><option>Gaji</option><option>Freelance</option><option>Investasi</option><option>Bonus</option><option>Makanan</option><option>Transport</option><option>Belanja</option><option>Kesehatan</option><option>Hiburan</option><option>Tagihan</option><option>Pendidikan</option><option>Lainnya</option></select></div>
+    <div class="mrow"><label>DESKRIPSI</label><input type="text" id="e-desc"></div>
+    <div class="mrow"><label>REFERENSI</label><input type="text" id="e-ref"></div>
+    <div class="mact">
+      <button class="btn" id="btn-save" onclick="saveEdit()">[ SIMPAN ]</button>
+      <button class="btn red" onclick="closeModal()">[ BATAL ]</button>
+    </div>
+  </div>
+</div>
+<script>
+const MASTER_KEY = '$2a$10$OLZqR8uPEjp/LLHXDMdVRehJ4IJ3f9/aQPkX2SjXtOF.c12R2jzi6';
+const BIN_ID = '6a28fa3ef5f4af5e29d6261e';
+const API_BASE = 'https://api.jsonbin.io/v3/b/' + BIN_ID;
+function hdrs(extra) { return Object.assign({'X-Master-Key': MASTER_KEY, 'X-Bin-Meta': 'false'}, extra || {}); }
+async function ensureBin() { return; }
+let DB = [];
+let offline = false;
+let charts = {};
+const CLR = ['#00ff41','#ff4141','#41d4ff','#ffd700','#ff8c00','#c084fc','#f472b6','#34d399','#fb923c','#a3e635'];
+const MON = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+async function apiGet() {
+  const r = await fetch(API_BASE + '/latest', { headers: hdrs() });
+  if (!r.ok) throw new Error('GET ' + r.status + ' ' + r.statusText);
+  const j = await r.json();
+  const rec = (j.record !== undefined) ? j.record : j;
+  if (rec && Array.isArray(rec.data)) return rec.data;
+  if (Array.isArray(rec)) return rec;
+  return [];
+}
+async function apiPut(arr) {
+  const r = await fetch(API_BASE, {
+    method: 'PUT',
+    headers: hdrs({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ data: arr })
+  });
+  if (!r.ok) throw new Error('PUT ' + r.status + ' ' + r.statusText);
+}
+function ss(state, txt) {
+  const d = document.getElementById('sdot');
+  const l = document.getElementById('slbl');
+  if (!d || !l) return;
+  d.className = state;
+  l.textContent = txt;
+}
+function lg(html) {
+  const el = document.getElementById('log');
+  if (!el) return;
+  el.innerHTML += `<span style="color:#555">[${new Date().toLocaleTimeString('id-ID')}]</span> ${html}<br>`;
+  el.scrollTop = el.scrollHeight;
+}
+setInterval(() => { const c = document.getElementById('clock'); if (c) c.textContent = new Date().toLocaleString('id-ID'); }, 1000);
+setInterval(() => { if (!offline && document.visibilityState === 'visible') doSync(true); }, 30000);
+async function doSync(silent = false) {
+  ss('busy','SYNCING…');
+  try {
+    DB = await apiGet();
+    ss('ok','LIVE ✓');
+    if (!silent) lg(`<span style="color:#00ff41">SYNC</span> ${DB.length} transaksi dimuat.`);
+    refreshAll();
+  } catch (e) {
+    ss('err','SYNC ERR');
+    lg(`<span style="color:#ff4141">ERROR</span> ${e.message}`);
+  }
+}
+function refreshAll() {
+  updateStats();
+  drawLine(); drawDnut();
+  buildFilters(); renderTbl();
+  renderSummary(); drawBar();
+}
+const fRp = n => 'Rp ' + Number(n).toLocaleString('id-ID');
+const uid = () => Date.now() + '_' + Math.random().toString(36).slice(2,8);
+const fMon = ym => { const [y,m] = ym.split('-'); return MON[+m-1] + ' ' + y; };
+function monthly() {
+  const map = {};
+  DB.forEach(d => {
+    const k = d.tanggal.slice(0,7);
+    if (!map[k]) map[k] = { inc: 0, exp: 0 };
+    d.jenis === 'income' ? map[k].inc += d.jumlah : map[k].exp += d.jumlah;
+  });
+  const keys = Object.keys(map).sort();
+  return { keys, inc: keys.map(k => map[k].inc), exp: keys.map(k => map[k].exp) };
+}
+function updateStats() {
+  const inc = DB.filter(d => d.jenis === 'income').reduce((a,b) => a + b.jumlah, 0);
+  const exp = DB.filter(d => d.jenis === 'expense').reduce((a,b) => a + b.jumlah, 0);
+  document.getElementById('s-i').textContent = fRp(inc);
+  document.getElementById('s-e').textContent = fRp(exp);
+  document.getElementById('s-b').textContent = fRp(inc - exp);
+  document.getElementById('s-t').textContent = DB.length;
+}
+const TC = { color:'#007a1e', font:{family:'Courier New',size:10} };
+const GC = '#111';
+function mkChart(id, cfg) {
+  if (charts[id]) { charts[id].destroy(); delete charts[id]; }
+  const canvas = document.getElementById(id);
+  if (!canvas) return;
+  charts[id] = new Chart(canvas.getContext('2d'), cfg);
+}
+function drawLine() {
+  const { keys, inc, exp } = monthly();
+  mkChart('cLine', {
+    type:'line',
+    data:{labels:keys.map(fMon), datasets:[
+      {label:'In', data:inc, borderColor:'#00ff41', backgroundColor:'rgba(0,255,65,.06)', tension:.3, pointRadius:3, pointBackgroundColor:'#00ff41'},
+      {label:'Out', data:exp, borderColor:'#ff4141', backgroundColor:'rgba(255,65,65,.06)', tension:.3, pointRadius:3, pointBackgroundColor:'#ff4141', borderDash:[5,4]}
+    ]},
+    options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{x:{ticks:TC,grid:{color:GC}}, y:{ticks:{...TC,callback:v=>'Rp '+Intl.NumberFormat('id-ID',{notation:'compact'}).format(v)},grid:{color:GC}}}}
+  });
+}
+function drawDnut() {
+  const map = {};
+  DB.filter(d => d.jenis === 'expense').forEach(d => { map[d.kategori] = (map[d.kategori]||0) + d.jumlah; });
+  const keys = Object.keys(map);
+  const vals = keys.map(k => map[k]);
+  const leg = document.getElementById('dleg');
+  if (!keys.length) {
+    if (leg) leg.innerHTML = '<span>Belum ada pengeluaran</span>';
+    if (charts['cDnut']){charts['cDnut'].destroy(); delete charts['cDnut'];}
+    return;
+  }
+  mkChart('cDnut', {
+    type:'doughnut',
+    data:{labels:keys,datasets:[{data:vals,backgroundColor:CLR.slice(0,keys.length),borderColor:'#0a0a0a',borderWidth:2}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}}
+  });
+  const tot = vals.reduce((a,b) => a + b, 0);
+  if (leg) leg.innerHTML = keys.map((k,i) => `<span style="display:flex;align-items:center;gap:5px"><span style="width:9px;height:9px;flex-shrink:0;background:${CLR[i]}"></span>${k}: ${((vals[i]/tot)*100).toFixed(1)}%</span>`).join('');
+}
+function drawBar() {
+  const { keys, inc, exp } = monthly();
+  mkChart('cBar', {
+    type:'bar',
+    data:{labels:keys.map(fMon), datasets:[
+      {label:'Pemasukan', data:inc, backgroundColor:'rgba(0,255,65,.55)', borderColor:'#00ff41', borderWidth:1},
+      {label:'Pengeluaran', data:exp, backgroundColor:'rgba(255,65,65,.55)', borderColor:'#ff4141', borderWidth:1}
+    ]},
+    options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{x:{ticks:TC,grid:{color:GC}}, y:{ticks:{...TC,callback:v=>'Rp '+Intl.NumberFormat('id-ID',{notation:'compact'}).format(v)},grid:{color:GC}}}}
+  });
+}
+function goTab(t) {
+  document.querySelectorAll('.tab').forEach((el,i) => el.classList.toggle('active', ['dashboard','transaksi','riwayat','laporan'][i] === t));
+  document.querySelectorAll('.panel').forEach(el => el.classList.remove('active'));
+  const panel = document.getElementById('panel-'+t);
+  if (panel) panel.classList.add('active');
+  if (t === 'laporan') { renderSummary(); setTimeout(drawBar,50); }
+  if (t === 'dashboard') { updateStats(); setTimeout(() => { drawLine(); drawDnut(); }, 50); }
+}
+async function addTx() {
+  const jenis = document.getElementById('f-jenis').value;
+  const tanggal = document.getElementById('f-tgl').value;
+  const jumlah = parseFloat(document.getElementById('f-jml').value);
+  const kategori = document.getElementById('f-kat').value;
+  const deskripsi = document.getElementById('f-desc').value.trim()||'-';
+  const ref = document.getElementById('f-ref').value.trim()||'-';
+  if (!tanggal) { lg('<span style="color:#ff4141">ERROR</span> Tanggal wajib diisi.'); return; }
+  if (!jumlah || jumlah <= 0) { lg('<span style="color:#ff4141">ERROR</span> Jumlah harus > 0.'); return; }
+  const btn = document.getElementById('btn-add');
+  btn.disabled = true; btn.textContent = '[ … ]';
+  ss('busy','SAVING…');
+  try {
+    const fresh = offline ? [...DB] : await apiGet();
+    fresh.push({ id: uid(), jenis, tanggal, jumlah, kategori, deskripsi, ref, ts: Date.now() });
+    if (!offline) await apiPut(fresh);
+    else localStorage.setItem('tf_offline', JSON.stringify(fresh));
+    DB = fresh;
+    ss('ok','LIVE ✓');
+    lg(`<span style="color:#00ff41">TAMBAH</span> ${jenis==='income'?'▲':'▼'} ${fRp(jumlah)} [${kategori}]`);
+    clearF(); refreshAll();
+  } catch (e) {
+    ss('err','ERR'); lg(`<span style="color:#ff4141">ERROR</span> ${e.message}`);
+  }
+  btn.disabled = false; btn.textContent = '[ + ADD ]';
+}
+function clearF() {
+  ['f-jml','f-desc','f-ref'].forEach(id => document.getElementById(id).value='');
+  document.getElementById('f-tgl').value = new Date().toISOString().slice(0,10);
+}
+function buildFilters() {
+  const bs = [...new Set(DB.map(d => d.tanggal.slice(0,7)))].sort();
+  const ks = [...new Set(DB.map(d => d.kategori))].sort();
+  const fb = document.getElementById('fb'); const cv = fb ? fb.value : '';
+  if (fb) fb.innerHTML = '<option value="">Semua</option>' + bs.map(m => `<option value="${m}"${m===cv?' selected':''}>${fMon(m)}</option>`).join('');
+  const fk = document.getElementById('fk'); const ck = fk ? fk.value : '';
+  if (fk) fk.innerHTML = '<option value="">Semua</option>' + ks.map(k => `<option value="${k}"${k===ck?' selected':''}>${k}</option>`).join('');
+}
+function resetFil() {
+  ['fq','fj','fb','fk'].forEach(id => document.getElementById(id).value='');
+  renderTbl();
+}
+function getFiltered() {
+  const q = (document.getElementById('fq').value || '').toLowerCase();
+  const j = document.getElementById('fj').value;
+  const b = document.getElementById('fb').value;
+  const k = document.getElementById('fk').value;
+  return DB.filter(d => {
+    if (j && d.jenis !== j) return false;
+    if (b && !d.tanggal.startsWith(b)) return false;
+    if (k && d.kategori !== k) return false;
+    if (q && !((d.deskripsi||'').toLowerCase().includes(q) || (d.kategori||'').toLowerCase().includes(q) || (d.ref||'').toLowerCase().includes(q))) return false;
+    return true;
+  }).sort((a,b) => b.tanggal.localeCompare(a.tanggal));
+}
+function renderTbl() {
+  const rows = getFiltered();
+  const w = document.getElementById('twrap');
+  if (!w) return;
+  if (!rows.length) { w.innerHTML = '<div class="empty">[ TIDAK ADA DATA ]</div>'; return; }
+  w.innerHTML = `<table>
+    <thead><tr><th>#</th><th>TANGGAL</th><th>JENIS</th><th>KATEGORI</th><th>JUMLAH</th><th>DESKRIPSI</th><th>REF</th><th>AKSI</th></tr></thead>
+    <tbody>${rows.map((d,i) => `<tr>
+      <td style="color:#444">${i+1}</td>
+      <td>${d.tanggal}</td>
+      <td><span class="badge ${d.jenis==='income'?'bi':'be'}">${d.jenis==='income'?'▲ IN':'▼ OUT'}</span></td>
+      <td style="color:#41d4ff">${d.kategori}</td>
+      <td style="color:${d.jenis==='income'?'#00ff41':'#ff4141'};font-weight:bold">${fRp(d.jumlah)}</td>
+      <td style="color:#777">${d.deskripsi||'-'}</td>
+      <td style="color:#444">${d.ref||'-'}</td>
+      <td style="white-space:nowrap">
+        <button class="btn blu" style="padding:1px 7px;font-size:10px" onclick="openEdit('${d.id}')">EDIT</button>
+        <button class="btn red" style="padding:1px 7px;font-size:10px;margin-left:3px" onclick="delTx('${d.id}')">DEL</button>
+      </td>
+    </tr>`).join('')}</tbody></table>`;
+}
+function openEdit(id) {
+  const d = DB.find(x => x.id === id);
+  if (!d) return;
+  document.getElementById('e-id').value = id;
+  document.getElementById('e-jenis').value = d.jenis;
+  document.getElementById('e-tgl').value = d.tanggal;
+  document.getElementById('e-jml').value = d.jumlah;
+  document.getElementById('e-kat').value = d.kategori;
+  document.getElementById('e-desc').value = d.deskripsi || '';
+  document.getElementById('e-ref').value = d.ref || '';
+  document.getElementById('modal-edit').classList.add('open');
+}
+async function saveEdit() {
+  const id = document.getElementById('e-id').value;
+  const btn = document.getElementById('btn-save');
+  btn.disabled = true; btn.textContent = '[ … ]';
+  ss('busy','SAVING…');
+  try {
+    const fresh = offline ? [...DB] : await apiGet();
+    const idx = fresh.findIndex(x => x.id === id);
+    if (idx >= 0) {
+      fresh[idx] = {
+        ...fresh[idx],
+        jenis: document.getElementById('e-jenis').value,
+        tanggal: document.getElementById('e-tgl').value,
+        jumlah: parseFloat(document.getElementById('e-jml').value),
+        kategori: document.getElementById('e-kat').value,
+        deskripsi: document.getElementById('e-desc').value.trim() || '-',
+        ref: document.getElementById('e-ref').value.trim() || '-'
+      };
+    }
+    if (!offline) await apiPut(fresh);
+    else localStorage.setItem('tf_offline', JSON.stringify(fresh));
+    DB = fresh; ss('ok','LIVE ✓');
+    closeModal(); refreshAll();
+    lg('<span style="color:#ffd700">UPDATE</span> Transaksi diperbarui.');
+  } catch (e) {
+    ss('err','ERR'); lg(`<span style="color:#ff4141">ERROR</span> ${e.message}`);
+  }
+  btn.disabled = false; btn.textContent = '[ SIMPAN ]';
+}
+async function delTx(id) {
+  if (!confirm('Hapus transaksi ini?')) return;
+  ss('busy','DELETING…');
+  try {
+    const fresh = offline ? [...DB] : await apiGet();
+    const updated = fresh.filter(x => x.id !== id);
+    if (!offline) await apiPut(updated);
+    else localStorage.setItem('tf_offline', JSON.stringify(updated));
+    DB = updated; ss('ok','LIVE ✓');
+    refreshAll(); lg('<span style="color:#ff4141">DELETE</span> Transaksi dihapus.');
+  } catch (e) {
+    ss('err','ERR'); lg(`<span style="color:#ff4141">ERROR</span> ${e.message}`);
+  }
+}
+function closeModal() { document.getElementById('modal-edit').classList.remove('open'); }
+function renderSummary() {
+  const { keys, inc, exp } = monthly();
+  const el = document.getElementById('stbl');
+  if (!el) return;
+  if (!keys.length) { el.innerHTML = '<div class="empty">[ BELUM ADA DATA ]</div>'; return; }
+  el.innerHTML = `<table><thead><tr><th>BULAN</th><th>PEMASUKAN</th><th>PENGELUARAN</th><th>SALDO</th></tr></thead><tbody>
+    ${keys.map((k,i) => { const s = inc[i] - exp[i]; return `<tr>
+      <td style="color:#41d4ff">${fMon(k)}</td>
+      <td style="color:#00ff41">${fRp(inc[i])}</td>
+      <td style="color:#ff4141">${fRp(exp[i])}</td>
+      <td style="color:${s>=0?'#00ff41':'#ff4141'};font-weight:bold">${fRp(s)}</td>
+    </tr>`; }).join('')}</tbody></table>`;
+}
+function expXlsx() {
+  const ws = XLSX.utils.json_to_sheet(DB.map((d,i) => ({ 'No': i+1, 'Tanggal': d.tanggal, 'Jenis': d.jenis==='income'?'Pemasukan':'Pengeluaran', 'Kategori': d.kategori, 'Jumlah': d.jumlah, 'Deskripsi': d.deskripsi, 'Ref': d.ref })));
+  const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Transaksi');
+  XLSX.writeFile(wb, 'laporan_keuangan.xlsx');
+  lg('<span style="color:#41d4ff">EXPORT</span> Excel diunduh.');
+}
+function expPDF() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  doc.setFont('courier'); doc.setFontSize(15); doc.text('LAPORAN KEUANGAN', 14, 14);
+  doc.setFontSize(9); doc.text('Dicetak: ' + new Date().toLocaleString('id-ID'), 14, 21);
+  const inc = DB.filter(d => d.jenis === 'income').reduce((a,b) => a + b.jumlah, 0);
+  const exp = DB.filter(d => d.jenis === 'expense').reduce((a,b) => a + b.jumlah, 0);
+  doc.text(`Pemasukan: ${fRp(inc)}  |  Pengeluaran: ${fRp(exp)}  |  Saldo: ${fRp(inc-exp)}`, 14, 27);
+  doc.autoTable({ startY: 32, head: [['No','Tanggal','Jenis','Kategori','Jumlah','Deskripsi']], body: DB.map((d,i) => [i+1,d.tanggal,d.jenis==='income'?'Masuk':'Keluar',d.kategori,fRp(d.jumlah),d.deskripsi]), styles:{font:'courier',fontSize:7.5}, headStyles:{fillColor:[0,80,15], textColor:[0,255,65]} });
+  doc.save('laporan_keuangan.pdf');
+  lg('<span style="color:#ff4141">EXPORT</span> PDF diunduh.');
+}
+function expWord() {
+  const inc = DB.filter(d => d.jenis === 'income').reduce((a,b) => a + b.jumlah, 0);
+  const exp = DB.filter(d => d.jenis === 'expense').reduce((a,b) => a + b.jumlah, 0);
+  const rows = DB.map((d,i) => `<tr><td>${i+1}</td><td>${d.tanggal}</td><td>${d.jenis==='income'?'Pemasukan':'Pengeluaran'}</td><td>${d.kategori}</td><td>${fRp(d.jumlah)}</td><td>${d.deskripsi}</td><td>${d.ref}</td></tr>`).join('');
+  const html = `<html><head><meta charset="utf-8"/></head><body><h2>LAPORAN KEUANGAN</h2><p>Dicetak: ${new Date().toLocaleString('id-ID')}</p><p>Pemasukan: ${fRp(inc)} | Pengeluaran: ${fRp(exp)} | Saldo: ${fRp(inc-exp)}</p><table border="1" cellpadding="4" style="border-collapse:collapse;font-size:11px"><thead><tr><th>No</th><th>Tanggal</th><th>Jenis</th><th>Kategori</th><th>Jumlah</th><th>Deskripsi</th><th>Ref</th></tr></thead><tbody>${rows}</tbody></table></body></html>`;
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob(['\ufeff'+html], { type:'application/msword' }));
+  a.download = 'laporan_keuangan.doc';
+  a.click();
+  lg('<span style="color:#ffd700">EXPORT</span> Word diunduh.');
+}
+function goOffline() {
+  offline = true;
+  try { DB = JSON.parse(localStorage.getItem('tf_offline') || '[]'); } catch (e) { DB = []; }
+  document.getElementById('err-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  document.getElementById('f-tgl').value = new Date().toISOString().slice(0,10);
+  ss('err','OFFLINE');
+  lg('<span style="color:#ffd700">WARN</span> Mode offline — data hanya tersimpan di browser ini.');
+  refreshAll();
+}
+function retryBoot() {
+  document.getElementById('err-screen').style.display = 'none';
+  startBoot();
+}
+function downloadHTML() {
+  const html = document.documentElement.outerHTML;
+  const blob = new Blob([html], { type:'text/html' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'terminal-finance.html';
+  a.click();
+}
+function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
+const LINES = [
+  'TERMINAL FINANCE v3.2',
+  '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
+  'Loading modules...',
+  '> Chart.js engine................. [OK]',
+  '> XLSX / PDF / DOC export......... [OK]',
+  '> JSONBin API (X-Access-Key)...... [OK]',
+  '> Connecting to cloud database.... ....',
+];
+async function typeLine(el,line) {
+  const prev = el.textContent;
+  el.textContent = prev + (prev ? '\n' : '') + line.slice(0,0);
+  for (let i = 1; i <= line.length; i++) {
+    const lines = el.textContent.split('\n');
+    lines[lines.length-1] = line.slice(0,i);
+    el.textContent = lines.join('\n');
+    await sleep(11);
+  }
+}
+async function startBoot() {
+  const bootEl = document.getElementById('boot');
+  const bt = document.getElementById('boot-text');
+  const bar = document.getElementById('boot-bar');
+  if (!bootEl || !bt || !bar) return;
+  bootEl.style.display = 'flex';
+  bt.textContent = '';
+  for (let i = 0; i < LINES.length; i++) {
+    bar.style.width = ((i / LINES.length) * 55) + '%';
+    await typeLine(bt, LINES[i]);
+    await sleep(i < 3 ? 50 : 80);
+  }
+  try {
+    await ensureBin();
+    DB = await apiGet();
+    bar.style.width = '100%';
+    await typeLine(bt, '> Records found: ' + DB.length + '................. [OK]');
+    await sleep(70);
+    await typeLine(bt, '> Auto-sync interval 30s.......... [ON]');
+    await sleep(70);
+    await typeLine(bt, '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    await sleep(70);
+    await typeLine(bt, '> Bin ID: ' + BIN_ID.slice(0,16) + '......... [READY]');
+    await sleep(50);
+    await typeLine(bt, 'DATABASE READY — accessible from all devices.');
+    await sleep(70);
+    await typeLine(bt, '[ ALL SYSTEMS OPERATIONAL ]');
+    await sleep(600);
+    bootEl.style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    document.getElementById('f-tgl').value = new Date().toISOString().slice(0,10);
+    ss('ok','LIVE ✓');
+    lg('Terhubung ke JSONBin. <span style="color:#00ff41">'+DB.length+'</span> transaksi siap.');
+    refreshAll();
+  } catch (e) {
+    await typeLine(bt, '> JSONBin connection.......... [FAILED]');
+    await sleep(400);
+    bootEl.style.display = 'none';
+    document.getElementById('err-screen').style.display = 'flex';
+    document.getElementById('err-msg').textContent = 'Error: ' + e.message;
+  }
+}
+function initApp() {
+  document.getElementById('f-tgl').value = new Date().toISOString().slice(0,10);
+  document.addEventListener('keydown', e => {
+    if (e.ctrlKey && e.key === 'Enter') { e.preventDefault(); addTx(); }
+    if (e.ctrlKey && e.key.toLowerCase() === 'd') { e.preventDefault(); goTab('dashboard'); }
+    if (e.ctrlKey && e.key.toLowerCase() === 'h') { e.preventDefault(); goTab('riwayat'); }
+    if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 's') { e.preventDefault(); doSync(); }
+  });
+  startBoot();
+}
+window.addEventListener('DOMContentLoaded', initApp);
+</script>
+</body>
+</html>

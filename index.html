@@ -225,13 +225,27 @@ let charts = {};
 const CLR = ['#00ff41','#ff4141','#41d4ff','#ffd700','#ff8c00','#c084fc','#f472b6','#34d399','#fb923c','#a3e635'];
 const MON = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
 async function apiGet() {
-  const r = await fetch(API_BASE + '/latest', { headers: hdrs() });
-  if (!r.ok) throw new Error('GET ' + r.status + ' ' + r.statusText);
-  const j = await r.json();
-  const rec = (j.record !== undefined) ? j.record : j;
-  if (rec && Array.isArray(rec.data)) return rec.data;
-  if (Array.isArray(rec)) return rec;
-  return [];
+  try {
+    const r = await fetch(API_BASE + '/latest', { headers: hdrs() });
+    if (!r.ok) throw new Error('GET ' + r.status + ' ' + r.statusText);
+    const j = await r.json();
+    const rec = (j.record !== undefined) ? j.record : j;
+    if (rec && Array.isArray(rec.data)) return rec.data;
+    if (Array.isArray(rec)) return rec;
+    return [];
+  } catch (e) {
+    // Fallback: try loading bundled sample data so the app remains usable
+    try {
+      lg('<span style="color:#ffd700">WARN</span> JSONBin unreachable, loading local sample data.');
+      const r2 = await fetch('sample_bin.json');
+      if (!r2.ok) throw e;
+      const j2 = await r2.json();
+      offline = true;
+      return Array.isArray(j2.data) ? j2.data : [];
+    } catch (e2) {
+      throw e; // rethrow original error
+    }
+  }
 }
 async function apiPut(arr) {
   const r = await fetch(API_BASE, {

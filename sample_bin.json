@@ -1,0 +1,19 @@
+{
+  "data": [
+    {"id":"s1","jenis":"income","tanggal":"2026-06-10","jumlah":10000000000000,"kategori":"Gaji","deskripsi":"Sample income 1","ref":"SAMPLE-IN-1","ts":1718060000000},
+    {"id":"s2","jenis":"income","tanggal":"2026-06-09","jumlah":10000000000000,"kategori":"Freelance","deskripsi":"Sample income 2","ref":"SAMPLE-IN-2","ts":1718050000001},
+    {"id":"s3","jenis":"income","tanggal":"2026-06-08","jumlah":10000000000000,"kategori":"Investasi","deskripsi":"Sample income 3","ref":"SAMPLE-IN-3","ts":1718040000002},
+    {"id":"s4","jenis":"income","tanggal":"2026-06-07","jumlah":10000000000000,"kategori":"Bonus","deskripsi":"Sample income 4","ref":"SAMPLE-IN-4","ts":1718030000003},
+    {"id":"s5","jenis":"income","tanggal":"2026-06-06","jumlah":10000000000000,"kategori":"Makanan","deskripsi":"Sample income 5","ref":"SAMPLE-IN-5","ts":1718020000004},
+    {"id":"s6","jenis":"income","tanggal":"2026-06-05","jumlah":10000000000000,"kategori":"Transport","deskripsi":"Sample income 6","ref":"SAMPLE-IN-6","ts":1718010000005},
+    {"id":"s7","jenis":"income","tanggal":"2026-06-04","jumlah":10000000000000,"kategori":"Belanja","deskripsi":"Sample income 7","ref":"SAMPLE-IN-7","ts":1718000000006},
+    {"id":"s8","jenis":"income","tanggal":"2026-06-03","jumlah":10000000000000,"kategori":"Kesehatan","deskripsi":"Sample income 8","ref":"SAMPLE-IN-8","ts":1717990000007},
+    {"id":"s9","jenis":"income","tanggal":"2026-06-02","jumlah":10000000000000,"kategori":"Hiburan","deskripsi":"Sample income 9","ref":"SAMPLE-IN-9","ts":1717980000008},
+    {"id":"s10","jenis":"income","tanggal":"2026-06-01","jumlah":10000000000000,"kategori":"Tagihan","deskripsi":"Sample income 10","ref":"SAMPLE-IN-10","ts":1717970000009},
+    {"id":"s11","jenis":"expense","tanggal":"2026-05-31","jumlah":10000000000000,"kategori":"Belanja","deskripsi":"Sample expense 1","ref":"SAMPLE-EX-1","ts":1717960000010},
+    {"id":"s12","jenis":"expense","tanggal":"2026-05-30","jumlah":10000000000000,"kategori":"Makanan","deskripsi":"Sample expense 2","ref":"SAMPLE-EX-2","ts":1717950000011},
+    {"id":"s13","jenis":"expense","tanggal":"2026-05-29","jumlah":10000000000000,"kategori":"Transport","deskripsi":"Sample expense 3","ref":"SAMPLE-EX-3","ts":1717940000012},
+    {"id":"s14","jenis":"expense","tanggal":"2026-05-28","jumlah":10000000000000,"kategori":"Kesehatan","deskripsi":"Sample expense 4","ref":"SAMPLE-EX-4","ts":1717930000013},
+    {"id":"s15","jenis":"expense","tanggal":"2026-05-27","jumlah":10000000000000,"kategori":"Lainnya","deskripsi":"Sample expense 5","ref":"SAMPLE-EX-5","ts":1717920000014}
+  ]
+}

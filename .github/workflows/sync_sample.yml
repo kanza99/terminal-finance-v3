@@ -1,0 +1,25 @@
+name: Sync sample_bin to JSONBin
+
+on:
+  schedule:
+    - cron: '*/30 * * * *' # every 30 minutes
+  workflow_dispatch: {}
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: |
+          python -V
+      - name: Sync sample_bin.json to JSONBin
+        env:
+          JSONBIN_MASTER_KEY: ${{ secrets.JSONBIN_MASTER_KEY }}
+          BIN_ID: 6a28fa3ef5f4af5e29d6261e
+        run: |
+          python3 sync_sample_to_jsonbin.py
